@@ -129,6 +129,7 @@ void excerise1(int dim, int numThreads) {
 	free(matrixB);
 	free(matrixBParallel);
 	free(matrixAParallel);
+	printf("END EXCERCISE 1\n*********************\n");
 }
 
 void excercise2(int dim, int numThreads) {
@@ -193,14 +194,16 @@ void excercise2(int dim, int numThreads) {
 			checkVectorsEx2(vectorC, vectorCParallel, sizeVector, numThreads));
 	printf("DIFFERENCE BEETWEN SUM AND PARALLEL SUM= %d\n",
 			parallel_sum - serial_sum);
-	printf("END EXCERCISE 2\n*********************\n");
 	free(vectorA);
 	free(vectorB);
 	free(vectorC);
 	free(vectorCParallel);
+	printf("END EXCERCISE 2\n*********************\n");
 }
 
-void excercise3() {
+void excercise3(int dim, int numThreads) {
+	printf("*********************\nBEGIN EXCERCISE 3\n");
+	printf("END EXCERCISE 3\n*********************\n");
 }
 
 void excercise4Reduction(int *vector, int sizeVector, int toSearch) {
@@ -237,7 +240,7 @@ void excercise4Atomic(int *vector, int sizeVector, int toSearch) {
 }
 
 void excercise4(int dim, int numThreads) {
-	printf("BEGIN EXCERCISE 4\n*********************\n");
+	printf("*********************\nBEGIN EXCERCISE 4\n");
 	int a;
 	double time_begin, time_end;
 	srand(time(NULL));
@@ -261,8 +264,11 @@ void excercise4(int dim, int numThreads) {
 	excercise4Reduction(vector, sizeVector, toSearch);
 	excercise4Atomic(vector, sizeVector, toSearch);
 	free(vector);
+	printf("END EXCERCISE 4\n*********************\n");
 }
-void excercise5() {
+void excercise5(int dim, int numThreads) {
+	printf("*********************\nBEGIN EXCERCISE 3\n");
+	printf("END EXCERCISE 3\n*********************\n");
 }
 
 int main() {
@@ -272,6 +278,7 @@ int main() {
 //	scanf("%d", &toLaunch);
 	int max_num_threads = omp_get_max_threads();
 	int num_thread = max_num_threads;
+	int dim = 10000;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
@@ -279,23 +286,23 @@ int main() {
 		break;
 	case 1:
 		printf("Exercise 1 \n");
-		excerise1(10000, num_thread);
+		excerise1(dim, num_thread);
 		break;
 	case 2:
 		printf("Exercise 2 \n");
-		excercise2(10000, num_thread);
+		excercise2(dim, num_thread);
 		break;
 	case 3:
 		printf("Exercise 3 \n");
-		excercise3();
+		excercise3(dim, num_thread);
 		break;
 	case 4:
 		printf("Exercise 4 \n");
-		excercise4(100000, num_thread);
+		excercise4(dim, num_thread);
 		break;
 	case 5:
 		printf("Exercise 5 \n");
-		excercise5();
+		excercise5(dim, num_thread);
 		break;
 	default:
 		printf("NUMBER NOT KNOW");
