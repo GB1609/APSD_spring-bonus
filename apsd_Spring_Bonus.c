@@ -200,6 +200,13 @@ void excercise2(int dim, int numThreads) {
 	free(vectorCParallel);
 }
 
+void excercise3() {
+}
+void excercise4() {
+}
+void excercise5() {
+}
+
 int main() {
 	printf(
 			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n 4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
@@ -219,6 +226,18 @@ int main() {
 	case 2:
 		printf("Exercise 2 \n");
 		excercise2(10000, numthread);
+		break;
+	case 3:
+		printf("Exercise 3 \n");
+		excercise3();
+		break;
+	case 4:
+		printf("Exercise 4 \n");
+		excercise4();
+		break;
+	case 5:
+		printf("Exercise 5 \n");
+		excercise5();
 		break;
 	default:
 		printf("NUMBER NOT KNOW");
