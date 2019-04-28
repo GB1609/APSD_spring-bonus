@@ -37,7 +37,7 @@ void sumOfVector() {
 	printf("TEMPO PARALLELO= %.8g \n SOMMA= %d \n", time_parallel, final_sum);
 	printf("END SUM OF VECTOR \n");
 }
-void printMatrix(double **matrix, int dim) {
+void printMatrixEx1(double **matrix, int dim) {
 	printf("%d", dim);
 	for (int a = 0; a < dim; a++) {
 		for (int b = 0; b < dim; b++) {
@@ -46,7 +46,7 @@ void printMatrix(double **matrix, int dim) {
 		printf("\n");
 	}
 }
-int checkMatrix(double **matrix1, double **matrix2, int dim, int numThreads) {
+int checkMatrixEx1(double **matrix1, double **matrix2, int dim, int numThreads) {
 
 	int finalSum = 0, a, b;
 #pragma omp parallel for shared(matrix1,matrix2) private(a,b) reduction(+:finalSum)
@@ -58,7 +58,19 @@ int checkMatrix(double **matrix1, double **matrix2, int dim, int numThreads) {
 	return finalSum;
 
 }
-void matrixGeneration2D(int dim, int numThreads) {
+
+int checkVectorsEx2(int *vetor1, int *vector2, int dim, int numThreads) {
+
+	int finalSum = 0, a;
+#pragma omp parallel for shared(vetor1,vector2) private(a) reduction(+:finalSum)
+	for (a = 0; a < dim; a++)
+		if (vetor1[a] != vector2[a])
+			finalSum++;
+	return finalSum;
+
+}
+
+void excerise1(int dim, int numThreads) {
 	double **matrixA = (double **) malloc(dim * sizeof(double));
 	double **matrixB = (double **) malloc(dim * sizeof(double));
 	for (int i = 0; i < dim; i++) {
@@ -103,8 +115,8 @@ void matrixGeneration2D(int dim, int numThreads) {
 
 	time_serial = omp_get_wtime() - time_begin;
 	time_begin = omp_get_wtime();
-	if (checkMatrix(matrixA, matrixAParallel, dim, numThreads) == 0
-			&& checkMatrix(matrixB, matrixBParallel, dim, numThreads) == 0) {
+	if (checkMatrixEx1(matrixA, matrixAParallel, dim, numThreads) == 0
+			&& checkMatrixEx1(matrixB, matrixBParallel, dim, numThreads) == 0) {
 		time_serial_check = omp_get_wtime() - time_begin;
 		printf(
 				"END PARALLEL EXERCISE 1\nTIME EXECUTION PARALLEL: %8g\n***********************",
@@ -113,27 +125,103 @@ void matrixGeneration2D(int dim, int numThreads) {
 				time_serial_check);
 	} else
 		printf("END PARALLEL EXERCISE 1 WITH ERROR\n\n***********************");
+	free(matrixA);
+	free(matrixB);
+	free(matrixBParallel);
+	free(matrixAParallel);
+}
+
+void excercise2(int dim, int numThreads) {
+
+	printf("BEGIN EXCERCISE 2\n*********************\n");
+	int a;
+	double time_begin, time_end;
+	srand(time(NULL));
+	printf("START GENERATION VECTOR\n");
+	int sizeVector = dim;
+	int * vectorA;
+	int* vectorC;
+	int* vectorCParallel;
+	int* vectorB;
+	vectorA = (int*) malloc(sizeVector * sizeof(int));
+	vectorB = (int*) malloc(sizeVector * sizeof(int));
+	vectorC = (int*) malloc(sizeVector * sizeof(int));
+	vectorCParallel = (int*) malloc(sizeVector * sizeof(int));
+	for (a = 0; a < sizeVector; a++) {
+		vectorA[a] = 1; // rand() % 10;
+		vectorB[a] = 1; // rand() % 10;
+	}
+	printf("END GENERATION VECTORS A & B\n");
+
+	time_begin = omp_get_wtime();
+
+	for (a = 0; a < sizeVector; a++) {
+		vectorC[a] = vectorA[a] + vectorB[a];
+	}
+	int serial_sum = 0;
+	for (a = 0; a < sizeVector; a++) {
+		serial_sum += vectorC[a] * vectorB[a];
+	}
+	time_end = omp_get_wtime() - time_begin;
+	printf(
+			"*****TIME SERIAL EXECUTION= %.8g\tWITH SCALAR PRODUCT SERIAL= %d*****\n",
+			time_end, serial_sum);
+	omp_set_num_threads(numThreads);
+	time_begin = omp_get_wtime();
+	int parallel_sum = 0, partial_sum = 0, thread_n;
+#pragma omp parallel for shared(vectorA,vectorB,vectorCParallel) private(a)
+	for (a = 0; a < sizeVector; a++) {
+		vectorCParallel[a] = vectorA[a] + vectorB[a];
+	}
+#pragma omp parallel private(a,thread_n,partial_sum)
+	{
+		partial_sum = 0;
+		thread_n = omp_get_thread_num();
+
+#pragma omp for reduction(+:parallel_sum)
+		for (a = 0; a < sizeVector; a++) {
+			parallel_sum += (vectorCParallel[a] * vectorB[a]);
+			partial_sum = parallel_sum;
+		}
+	}
+	time_end = omp_get_wtime() - time_begin;
+	printf(
+			"*****TIME PARALLEL EXECUTION= %.8g\tWITH SCALAR PRODUCT PARALLEL= %d*****\n",
+			time_end, parallel_sum);
+
+	printf("DIFFERENCE BEETWEN VECTORC AND VECTORCPARALLEL= %d\n",
+			checkVectorsEx2(vectorC, vectorCParallel, sizeVector, numThreads));
+	printf("DIFFERENCE BEETWEN SUM AND PARALLEL SUM= %d\n",
+			parallel_sum - serial_sum);
+	printf("END EXCERCISE 2\n*********************\n");
+	free(vectorA);
+	free(vectorB);
+	free(vectorC);
+	free(vectorCParallel);
 }
 
 int main() {
 	printf(
 			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n 4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
-//	int toLaunch;
+	int toLaunch = 2;
 //	scanf("%d", &toLaunch);
 	int numThreadMax = omp_get_max_threads();
 	int numthread = numThreadMax;
-//	switch (toLaunch) {
-//	case 0:
-//		printf("SUM OF VECTOR\n");
-//		sumOfVector();
-//		break;
-//	case 1:
-//		printf("Exercise one \n");
-
-	matrixGeneration2D(10000, numthread);
-//		break;
-//	default:
-//		printf("NUMBER NOT KNOW");
-//	}
+	switch (toLaunch) {
+	case 0:
+		printf("SUM OF VECTOR\n");
+		sumOfVector();
+		break;
+	case 1:
+		printf("Exercise 1 \n");
+		excerise1(10000, numthread);
+		break;
+	case 2:
+		printf("Exercise 2 \n");
+		excercise2(10000, numthread);
+		break;
+	default:
+		printf("NUMBER NOT KNOW");
+	}
 	return 0;
 }
