@@ -133,7 +133,7 @@ void excerise1(int dim, int numThreads) {
 
 void excercise2(int dim, int numThreads) {
 
-	printf("BEGIN EXCERCISE 2\n*********************\n");
+	printf("*********************BEGIN EXCERCISE 2\n");
 	int a;
 	double time_begin, time_end;
 	srand(time(NULL));
@@ -148,8 +148,8 @@ void excercise2(int dim, int numThreads) {
 	vectorC = (int*) malloc(sizeVector * sizeof(int));
 	vectorCParallel = (int*) malloc(sizeVector * sizeof(int));
 	for (a = 0; a < sizeVector; a++) {
-		vectorA[a] = 1; // rand() % 10;
-		vectorB[a] = 1; // rand() % 10;
+		vectorA[a] = rand() % 10;
+		vectorB[a] = rand() % 10;
 	}
 	printf("END GENERATION VECTORS A & B\n");
 
@@ -202,7 +202,65 @@ void excercise2(int dim, int numThreads) {
 
 void excercise3() {
 }
-void excercise4() {
+
+void excercise4Reduction(int *vector, int sizeVector, int toSearch) {
+	int parallel_find = 0, a;
+	double time_begin = omp_get_wtime();
+#pragma omp parallel for shared(vector) private(a) reduction (+:parallel_find)
+	for (a = 0; a < sizeVector; a++)
+		if (vector[a] == toSearch)
+			parallel_find++;
+	double time_end = omp_get_wtime() - time_begin;
+	printf(
+			"***PARALLEL (reduction) -> Finished in: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)\n",
+			time_end, parallel_find, sizeVector);
+}
+
+void excercise4Atomic(int *vector, int sizeVector, int toSearch) {
+	int parallel_find = 0, a;
+	double time_begin = omp_get_wtime();
+#pragma omp parallel
+	{
+		int id = omp_get_thread_num();
+#pragma omp  for
+		for (int i = 0; i < sizeVector; i++) {
+			if (vector[i] == toSearch)
+#pragma omp atomic
+				parallel_find++;
+		}
+
+	}
+	double time_end = omp_get_wtime() - time_begin;
+	printf(
+			"***PARALLEL (atomic) -> Finished in: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)\n",
+			time_end, parallel_find, sizeVector);
+}
+
+void excercise4(int dim, int numThreads) {
+	printf("BEGIN EXCERCISE 4\n*********************\n");
+	int a;
+	double time_begin, time_end;
+	srand(time(NULL));
+	printf("START GENERATION VECTOR\n");
+	int sizeVector = dim;
+	int * vector = (int*) malloc(sizeVector * sizeof(int));
+	for (a = 0; a < sizeVector; a++)
+		vector[a] = rand() % 100;
+	printf("END GENERATION VECTOR\n");
+	int toSearch = rand() % 100;
+	time_begin = omp_get_wtime();
+	int find = 0;
+	for (a = 0; a < sizeVector; a++)
+		if (vector[a] == toSearch)
+			find++;
+	time_end = omp_get_wtime() - time_begin;
+	printf(
+			"***SERIAL -> Finished in: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)\n",
+			time_end, find, sizeVector);
+
+	excercise4Reduction(vector, sizeVector, toSearch);
+	excercise4Atomic(vector, sizeVector, toSearch);
+	free(vector);
 }
 void excercise5() {
 }
@@ -210,10 +268,10 @@ void excercise5() {
 int main() {
 	printf(
 			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n 4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
-	int toLaunch = 2;
+	int toLaunch = 4;
 //	scanf("%d", &toLaunch);
-	int numThreadMax = omp_get_max_threads();
-	int numthread = numThreadMax;
+	int max_num_threads = omp_get_max_threads();
+	int num_thread = max_num_threads;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
@@ -221,11 +279,11 @@ int main() {
 		break;
 	case 1:
 		printf("Exercise 1 \n");
-		excerise1(10000, numthread);
+		excerise1(10000, num_thread);
 		break;
 	case 2:
 		printf("Exercise 2 \n");
-		excercise2(10000, numthread);
+		excercise2(10000, num_thread);
 		break;
 	case 3:
 		printf("Exercise 3 \n");
@@ -233,7 +291,7 @@ int main() {
 		break;
 	case 4:
 		printf("Exercise 4 \n");
-		excercise4();
+		excercise4(100000, num_thread);
 		break;
 	case 5:
 		printf("Exercise 5 \n");
