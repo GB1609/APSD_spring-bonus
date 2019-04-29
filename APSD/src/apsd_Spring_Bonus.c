@@ -169,7 +169,7 @@ void excercise2(int dim, int numThreads) {
 			time_end, serial_sum);
 	omp_set_num_threads(numThreads);
 	time_begin = omp_get_wtime();
-	int parallel_sum = 0, partial_sum = 0, thread_n;
+	int parallel_sum = 0, partial_sum, thread_n;
 #pragma omp parallel for shared(vectorA,vectorB,vectorCParallel) private(a)
 	for (a = 0; a < sizeVector; a++) {
 		vectorCParallel[a] = vectorA[a] + vectorB[a];
@@ -201,8 +201,71 @@ void excercise2(int dim, int numThreads) {
 	printf("END EXCERCISE 2\n*********************\n");
 }
 
+void excercise3_serial(int dim) {
+	double x, pi, sum = 0.0;
+	double step = 1.0 / (double) dim;
+	double begin_time = omp_get_wtime();
+	for (int i = 0; i < dim; i++) {
+		x = (i + 0.5) * step;
+		sum += 4.0 / (1.0 + x * x);
+	}
+	pi = step * sum;
+	double end_time = omp_get_wtime() - begin_time;
+	printf("*SERIAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
+}
+
+void excercise3_critical(int dim, int numThreads) {
+	double pi = 0.0, begin_time, end_time;
+	double step = 1.0 / (double) dim;
+	omp_set_num_threads(numThreads);
+	begin_time = omp_get_wtime();
+#pragma omp parallel
+	{
+		double x, sum;
+		int i, id, num_th;
+#pragma omp for
+		for (int i = 0; i < dim; i++) {
+			x = (i + 0.5) * step;
+			sum += 4.0 / (1.0 + x * x);
+		}
+
+#pragma omp critical
+		pi += step * sum;
+	}
+	end_time = omp_get_wtime() - begin_time;
+	printf("*CRITICAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
+}
+void excercise3_padding(int dim, int numThreads) {
+	double pi = 0.0, begin_time, end_time, n, x;
+
+	double pi_padding[numThreads][8];
+	double step = 1.0 / (double) dim;
+	omp_set_num_threads(numThreads);
+	begin_time = omp_get_wtime();
+#pragma omp parallel
+	{
+		int id = omp_get_thread_num();
+#pragma omp for
+		for (int i = 0; i < dim; i++) {
+			x = (i + 0.5) * step;
+			pi_padding[id][0] += 4.0 / (1.0 + x * x);
+		}
+	}
+	for (int i = 0; i < numThreads; i++)
+		pi += pi_padding[i][0] * step;
+
+	end_time = omp_get_wtime() - begin_time;
+	printf("*PADDING EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
+}
+
 void excercise3(int dim, int numThreads) {
 	printf("*********************\nBEGIN EXCERCISE 3\n");
+	excercise3_serial(dim);
+	excercise3_critical(dim, numThreads);
+	excercise3_padding(dim, numThreads);
 	printf("END EXCERCISE 3\n*********************\n");
 }
 
@@ -220,11 +283,10 @@ void excercise4Reduction(int *vector, int sizeVector, int toSearch) {
 }
 
 void excercise4Atomic(int *vector, int sizeVector, int toSearch) {
-	int parallel_find = 0, a;
+	int parallel_find = 0;
 	double time_begin = omp_get_wtime();
 #pragma omp parallel
 	{
-		int id = omp_get_thread_num();
 #pragma omp  for
 		for (int i = 0; i < sizeVector; i++) {
 			if (vector[i] == toSearch)
@@ -274,34 +336,34 @@ void excercise5(int dim, int numThreads) {
 int main() {
 	printf(
 			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n 4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
-	int toLaunch = 4;
+	int toLaunch = 3;
 //	scanf("%d", &toLaunch);
 	int max_num_threads = omp_get_max_threads();
 	int num_thread = max_num_threads;
-	int dim = 10000;
+	int dim = 1000000;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
 		sumOfVector();
 		break;
 	case 1:
-		printf("Exercise 1 \n");
+		printf("***Exercise 1*** \n");
 		excerise1(dim, num_thread);
 		break;
 	case 2:
-		printf("Exercise 2 \n");
+		printf("***Exercise 2*** \n");
 		excercise2(dim, num_thread);
 		break;
 	case 3:
-		printf("Exercise 3 \n");
+		printf("***Exercise 3*** \n");
 		excercise3(dim, num_thread);
 		break;
 	case 4:
-		printf("Exercise 4 \n");
+		printf("***Exercise 4*** \n");
 		excercise4(dim, num_thread);
 		break;
 	case 5:
-		printf("Exercise 5 \n");
+		printf("***Exercise 5*** \n");
 		excercise5(dim, num_thread);
 		break;
 	default:
