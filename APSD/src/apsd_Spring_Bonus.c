@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <time.h>
-#include <stdlib.h>
 #include <math.h>
 
 void sumOfVector() {
@@ -201,7 +200,7 @@ void excercise2(int dim, int numThreads) {
 	printf("END EXCERCISE 2\n*********************\n");
 }
 
-void excercise3_serial(int dim) {
+double excercise3_serial(int dim) {
 	double x, pi, sum = 0.0;
 	double step = 1.0 / (double) dim;
 	double begin_time = omp_get_wtime();
@@ -213,9 +212,9 @@ void excercise3_serial(int dim) {
 	double end_time = omp_get_wtime() - begin_time;
 	printf("*SERIAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
+	return end_time;
 }
-
-void excercise3_critical(int dim, int numThreads) {
+double excercise3_critical(int dim, int numThreads) {
 	double pi = 0.0, begin_time, end_time;
 	double step = 1.0 / (double) dim;
 	omp_set_num_threads(numThreads);
@@ -235,8 +234,9 @@ void excercise3_critical(int dim, int numThreads) {
 	end_time = omp_get_wtime() - begin_time;
 	printf("*CRITICAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
+	return end_time;
 }
-void excercise3_padding(int dim, int numThreads) {
+double excercise3_padding(int dim, int numThreads) {
 	double pi = 0.0, begin_time, end_time, x;
 
 	double pi_padding[numThreads][8];
@@ -258,11 +258,13 @@ void excercise3_padding(int dim, int numThreads) {
 	end_time = omp_get_wtime() - begin_time;
 	printf("*PADDING EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
+	return end_time;
 }
-void excercise3_reduction(int dim, int numThreads) {
+double excercise3_reduction(int dim, int numThreads) {
 	int i;
 	double x, pi, sum = 0.0;
 	double step = 1.0 / (double) dim;
+	omp_set_num_threads(numThreads);
 	double begin_time = omp_get_wtime();
 #pragma omp parallel for private(i) reduction (+:sum)
 	for (i = 0; i < dim; i++) {
@@ -273,7 +275,26 @@ void excercise3_reduction(int dim, int numThreads) {
 	double end_time = omp_get_wtime() - begin_time;
 	printf("*REDUCTION EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
-
+	return end_time;
+}
+double excercise3_monte_carlo(int dim, int numThreads) {
+	int i, nCirc = 0;
+	double r = 1.0, pi, x, y;
+	omp_set_num_threads(numThreads);
+	int seed=(int)r*2;
+	double begin_time = omp_get_wtime();
+#pragma omp parallel for private(x,y,i) reduction (+:nCirc)
+	for (i = 0; i < dim; i++) {
+		x =(double) rand_r(&seed)/RAND_MAX;
+		y =(double) rand_r(&seed)/RAND_MAX;
+		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
+			nCirc++;
+	}
+	pi = 4.0 * ((double) nCirc / (double) dim);
+	double end_time = omp_get_wtime() - begin_time;
+	printf("*MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
+	return end_time;
 }
 void excercise3(int dim, int numThreads) {
 	printf("*********************\nBEGIN EXCERCISE 3\n");
@@ -281,6 +302,7 @@ void excercise3(int dim, int numThreads) {
 	excercise3_critical(dim, numThreads);
 	excercise3_padding(dim, numThreads);
 	excercise3_reduction(dim, numThreads);
+	excercise3_monte_carlo(dim, numThreads);
 	printf("END EXCERCISE 3\n*********************\n");
 }
 
@@ -355,7 +377,7 @@ int main() {
 //	scanf("%d", &toLaunch);
 	int max_num_threads = omp_get_max_threads();
 	int num_thread = max_num_threads;
-	int dim = 1000000;
+	int dim = 100000000;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
