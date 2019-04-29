@@ -223,7 +223,6 @@ void excercise3_critical(int dim, int numThreads) {
 #pragma omp parallel
 	{
 		double x, sum;
-		int i, id, num_th;
 #pragma omp for
 		for (int i = 0; i < dim; i++) {
 			x = (i + 0.5) * step;
@@ -238,7 +237,7 @@ void excercise3_critical(int dim, int numThreads) {
 			end_time, pi);
 }
 void excercise3_padding(int dim, int numThreads) {
-	double pi = 0.0, begin_time, end_time, n, x;
+	double pi = 0.0, begin_time, end_time, x;
 
 	double pi_padding[numThreads][8];
 	double step = 1.0 / (double) dim;
@@ -260,12 +259,28 @@ void excercise3_padding(int dim, int numThreads) {
 	printf("*PADDING EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
 }
+void excercise3_reduction(int dim, int numThreads) {
+	int i;
+	double x, pi, sum = 0.0;
+	double step = 1.0 / (double) dim;
+	double begin_time = omp_get_wtime();
+#pragma omp parallel for private(i) reduction (+:sum)
+	for (i = 0; i < dim; i++) {
+		x = (i + 0.5) * step;
+		sum += 4.0 / (1.0 + x * x);
+	}
+	pi = step * sum;
+	double end_time = omp_get_wtime() - begin_time;
+	printf("*REDUCTION EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
 
+}
 void excercise3(int dim, int numThreads) {
 	printf("*********************\nBEGIN EXCERCISE 3\n");
 	excercise3_serial(dim);
 	excercise3_critical(dim, numThreads);
 	excercise3_padding(dim, numThreads);
+	excercise3_reduction(dim, numThreads);
 	printf("END EXCERCISE 3\n*********************\n");
 }
 
