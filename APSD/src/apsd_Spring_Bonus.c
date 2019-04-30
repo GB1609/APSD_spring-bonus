@@ -69,6 +69,18 @@ int checkMatrixEx1(double **matrix1, double **matrix2, int dim, int numThreads) 
 
 }
 
+int checkMatrixEx5(int **matrix1, int **matrix2, int dim, int numThreads) {
+
+	int finalSum = 0, a, b;
+	for (a = 0; a < dim; a++)
+		for (b = 0; b < dim; b++)
+			if (matrix1[a][b] != matrix2[a][b])
+				finalSum++;
+
+	return finalSum;
+
+}
+
 int checkVectorsEx2(int *vetor1, int *vector2, int dim, int numThreads) {
 
 	int finalSum = 0, a;
@@ -467,40 +479,74 @@ int count_live_cell_ex5(int ** matrix, int row, int col, int dim, int toroidale)
 	return cont;
 }
 
+int** generateTemp(int dim) {
+	int** temp = (int**) malloc(dim * sizeof(int*));
+	for (int t = 0; t < dim; t++)
+		temp[t] = (int*) malloc(dim * sizeof(int));
+	return temp;
+}
+
+void** update_temp_matrix_Ex5(int dim, int** matrix, int **temp) {
+	for (int c1 = 0; c1 < dim; c1++)
+		for (int c2 = 0; c2 < dim; c2++)
+			temp[c1][c2] = matrix[c1][c2];
+}
+
+void update_matrix_ex5(int x, int j, int live, int** matrix, int** temp) {
+	if (!temp[x][j] && live == 3)
+		matrix[x][j] = 1;
+	else if (temp[x][j] && (live < 2 || live > 3))
+		matrix[x][j] = 0;
+}
+
 int serial_ex5(int numIteration, int ** matrix, int dim) {
 	double begin_time = omp_get_wtime();
-	//Qualsiasi cella viva con meno di due celle vive adiacenti muore, come per effetto d'isolamento;
-	//Qualsiasi cella viva con due o tre celle vive adiacenti sopravvive alla generazione successiva;
-	//Qualsiasi cella viva con più di tre celle vive adiacenti muore, come per effetto di sovrappopolazione;
-	//Qualsiasi cella morta con esattamente tre celle vive adiacenti diventa una cella viva, come per effetto di riproduzione.
+	int** temp = generateTemp(dim);
 	for (int a = 0; a < numIteration; a++) {
-		int **temp = (int **) malloc(dim * sizeof(int*));
-		for (int t = 0; t < dim; t++)
-			temp[t] = (int *) malloc(dim * sizeof(int));
-		for (int c1 = 0; c1 < dim; c1++)
-			for (int c2 = 0; c2 < dim; c2++)
-				temp[c1][c2] = matrix[c1][c2];
+		update_temp_matrix_Ex5(dim, matrix, temp);
 		for (int x = 0; x < dim; x++)
 			for (int j = 0; j < dim; j++) {
-				int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se tiroidale o no
-				if (!matrix[x][j] && live == 3)
-					matrix[x][j] = 1;
-				else if (matrix[x][j] && (live < 2 || live > 3))
-					matrix[x][j] = 0;
+				int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se toroidale o no
+//				printf("sono x=%d y =%d e intorno ho %d vive \n", x, j, live);
+				update_matrix_ex5(x, j, live, matrix, temp);
 			}
-		printf("*****TURN %d*****", a);
-		printMatrixEx5(matrix, dim);
-		free(temp);
+//		printf("*****TURN %d*****", a);
+//		printMatrixEx5(matrix, dim);
 	}
+	free(temp);
 	double end_time = omp_get_wtime() - begin_time;
 	printf("*SERIAL GOL EXECUTION TERMINATED IN: %.8g\n", end_time);
 	return end_time;
 }
-void parallel_ex5(int numIteration, int ** matrix, int dim) {
+double parallel_ex5(int numIteration, int ** matrix, int dim, int nThreads) {
+	omp_set_num_threads(nThreads);
+	double begin_time = omp_get_wtime();
+	int x, j;
+	int** temp = generateTemp(dim);
+	for (int a = 0; a < numIteration; a++) {
+		update_temp_matrix_Ex5(dim, matrix, temp);
+#pragma omp parallel for private (x,j) schedule(dynamic,3)
+			for (x = 0; x < dim; x++) {
+				for (j = 0; j < dim; j++) {
+					int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se toroidale o no
+//					printf("sono x=%d y =%d e intorno ho %d vive \n", x, j,
+//							live);
+					update_matrix_ex5(x, j, live, matrix, temp);
+				}
+			}
+
+//		printf("*****TURN %d*****", a);
+//		printMatrixEx5(matrix, dim);
+	}
+	free(temp);
+	double end_time = omp_get_wtime() - begin_time;
+	printf("*PARALLEL EXECUTION TERMINATED IN: %.8g\n", end_time);
+	return end_time;
 }
 
 void excercise5(int numIteration, int numThreads) {
-	int dim = 4;
+	int dim = 100;
+//	numIteration = 1;
 	printf("*********************\nBEGIN EXCERCISE 5\n");
 	printf("*BEGIN GENERATION MATRIX*\n");
 	int **matrix = (int **) malloc(dim * sizeof(int*));
@@ -512,11 +558,16 @@ void excercise5(int numIteration, int numThreads) {
 		parallel_matrix[i] = (int *) malloc(dim * sizeof(int));
 	}
 	generate_matrix_exercise_5(matrix, serial_matrix, parallel_matrix, dim);
-	printf("*END GENERATION MATRIX*\n");
+	printf("*END GENERATION MATRIX*\nORIGINAL MATRIX\n");
 	printMatrixEx5(matrix, dim);
 	serial_ex5(numIteration, serial_matrix, dim);
-	parallel_ex5(numIteration, parallel_matrix, dim);
+	parallel_ex5(numIteration, parallel_matrix, dim, 2);
+	printf("DiFF============>%d\n",
+			checkMatrixEx5(serial_matrix, parallel_matrix, dim, numThreads));
 	printf("END EXCERCISE 5\n*********************\n");
+	free(matrix);
+	free(serial_matrix);
+	free(parallel_matrix);
 }
 
 int main() {
@@ -535,7 +586,7 @@ int main() {
 //		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
 //	}
 	num_thread = max_num_threads;
-	dim = 5;
+	dim = 100000;
 	toLaunch = 5;
 	switch (toLaunch) {
 	case 0:
@@ -565,5 +616,6 @@ int main() {
 	default:
 		printf("NUMBER NOT KNOW");
 	}
+	printf("IRON MAN MUORE\n");
 	return 0;
 }
