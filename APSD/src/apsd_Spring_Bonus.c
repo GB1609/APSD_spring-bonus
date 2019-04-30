@@ -45,6 +45,17 @@ void printMatrixEx1(double **matrix, int dim) {
 		printf("\n");
 	}
 }
+
+void printMatrixEx5(int **matrix, int dim) {
+	printf("DIMENSION OF MATRIX ====> %d\n", dim);
+	for (int a = 0; a < dim; a++) {
+		for (int b = 0; b < dim; b++) {
+			printf("%d \t", matrix[a][b]);
+		}
+		printf("\n");
+	}
+}
+
 int checkMatrixEx1(double **matrix1, double **matrix2, int dim, int numThreads) {
 
 	int finalSum = 0, a, b;
@@ -70,8 +81,8 @@ int checkVectorsEx2(int *vetor1, int *vector2, int dim, int numThreads) {
 }
 
 void excerise1(int dim, int numThreads) {
-	double **matrixA = (double **) malloc(dim * sizeof(double));
-	double **matrixB = (double **) malloc(dim * sizeof(double));
+	double **matrixA = (double **) malloc(dim * sizeof(double*));
+	double **matrixB = (double **) malloc(dim * sizeof(double*));
 	for (int i = 0; i < dim; i++) {
 		matrixA[i] = (double *) malloc(dim * sizeof(double));
 		matrixB[i] = (double *) malloc(dim * sizeof(double));
@@ -219,7 +230,7 @@ double excercise3_critical(int dim, int numThreads) {
 	double step = 1.0 / (double) dim;
 	omp_set_num_threads(numThreads);
 	begin_time = omp_get_wtime();
-#pragma omp parallel
+#pragma omp parallel if(dim > 10000)
 	{
 		double x, sum;
 #pragma omp for
@@ -238,12 +249,11 @@ double excercise3_critical(int dim, int numThreads) {
 }
 double excercise3_padding(int dim, int numThreads) {
 	double pi = 0.0, begin_time, end_time, x;
-
 	double pi_padding[numThreads][8];
 	double step = 1.0 / (double) dim;
 	omp_set_num_threads(numThreads);
 	begin_time = omp_get_wtime();
-#pragma omp parallel
+#pragma omp parallel if(dim > 10000)
 	{
 		int id = omp_get_thread_num();
 #pragma omp for
@@ -266,7 +276,7 @@ double excercise3_reduction(int dim, int numThreads) {
 	double step = 1.0 / (double) dim;
 	omp_set_num_threads(numThreads);
 	double begin_time = omp_get_wtime();
-#pragma omp parallel for private(i) reduction (+:sum)
+#pragma omp parallel for private(i) reduction (+:sum) if(dim > 10000)
 	for (i = 0; i < dim; i++) {
 		x = (i + 0.5) * step;
 		sum += 4.0 / (1.0 + x * x);
@@ -277,22 +287,41 @@ double excercise3_reduction(int dim, int numThreads) {
 			end_time, pi);
 	return end_time;
 }
-double excercise3_monte_carlo(int dim, int numThreads) {
+double excercise3_serial_monte_carlo(int dim, int numThreads) {
 	int i, nCirc = 0;
 	double r = 1.0, pi, x, y;
 	omp_set_num_threads(numThreads);
-	int seed=(int)r*2;
+	int seed = (int) r * 2;
 	double begin_time = omp_get_wtime();
-#pragma omp parallel for private(x,y,i) reduction (+:nCirc)
 	for (i = 0; i < dim; i++) {
-		x =(double) rand_r(&seed)/RAND_MAX;
-		y =(double) rand_r(&seed)/RAND_MAX;
+		x = (double) rand_r(&seed) / RAND_MAX;
+		y = (double) rand_r(&seed) / RAND_MAX;
 		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
 			nCirc++;
 	}
 	pi = 4.0 * ((double) nCirc / (double) dim);
 	double end_time = omp_get_wtime() - begin_time;
-	printf("*MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+	printf(
+			"*SERIAL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
+			end_time, pi);
+	return end_time;
+}
+double excercise3_parallel_monte_carlo(int dim, int numThreads) {
+	int i, nCirc = 0;
+	double r = 1.0, pi, x, y;
+	int seed = 0;
+	double begin_time = omp_get_wtime();
+#pragma omp parallel for private(x,y,i) reduction (+:nCirc) if(dim > 10000000)
+	for (i = 0; i < dim; i++) {
+		x = (double) rand_r(&seed) / RAND_MAX;
+		y = (double) rand_r(&seed) / RAND_MAX;
+		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
+			nCirc++;
+	}
+	pi = 4.0 * ((double) nCirc / (double) dim);
+	double end_time = omp_get_wtime() - begin_time;
+	printf(
+			"*PARALLEL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
 			end_time, pi);
 	return end_time;
 }
@@ -302,7 +331,8 @@ void excercise3(int dim, int numThreads) {
 	excercise3_critical(dim, numThreads);
 	excercise3_padding(dim, numThreads);
 	excercise3_reduction(dim, numThreads);
-	excercise3_monte_carlo(dim, numThreads);
+	excercise3_serial_monte_carlo(dim, numThreads);
+	excercise3_parallel_monte_carlo(dim, numThreads);
 	printf("END EXCERCISE 3\n*********************\n");
 }
 
@@ -365,19 +395,148 @@ void excercise4(int dim, int numThreads) {
 	free(vector);
 	printf("END EXCERCISE 4\n*********************\n");
 }
-void excercise5(int dim, int numThreads) {
-	printf("*********************\nBEGIN EXCERCISE 3\n");
-	printf("END EXCERCISE 3\n*********************\n");
+
+void generate_matrix_exercise_5(int ** matrix, int ** s_matrix, int ** p_matrix,
+		int dim) {
+	int cont = 0;
+	for (int a = 0; a < dim; a++) {
+		for (int b = 0; b < dim; b++) {
+			matrix[a][b] = rand() % 2;
+			s_matrix[a][b] = matrix[a][b];
+			p_matrix[a][b] = matrix[a][b];
+		}
+		cont++;
+		for (int s = 0; s < cont; s++)
+			printf("*");
+		printf("\n");
+	}
+}
+
+int module(int x, int dim) {
+	return (x % dim + dim) % dim;
+}
+
+int count_live_cell_ex5(int ** matrix, int row, int col, int dim, int toroidale) {
+	int cont = 0;
+
+	int up = row - 1, down = row + 1, left = col - 1, right = col + 1,
+			up_toroidale = module((row - 1), dim), left_toroidale = module(
+					(col - 1), dim), down_toroidale = module((row + 1), dim),
+			right_toroidale = module((col + 1), dim);
+	//UP
+	if (up > 0 && matrix[up][col])
+		cont++;
+	else if (toroidale && matrix[up_toroidale][col])
+		cont++;
+	//LEFT
+	if (left > 0 && matrix[row][left])
+		cont++;
+	else if (toroidale && matrix[row][left_toroidale])
+		cont++;
+	//RIGHT
+	if (right < dim && matrix[row][right])
+		cont++;
+	else if (toroidale && matrix[row][right_toroidale])
+		cont++;
+	//DOWN
+	if (down < dim && matrix[down][col])
+		cont++;
+	else if (toroidale && matrix[down_toroidale][col])
+		cont++;
+
+	//DOWN_LEFT
+	if (down < dim && left > 0 && matrix[down][left])
+		cont++;
+	else if (toroidale && matrix[down_toroidale][left_toroidale])
+		cont++;
+	//up_right
+	if (up > 0 && right < dim && matrix[up][right])
+		cont++;
+	else if (toroidale && matrix[up_toroidale][right_toroidale])
+		cont++;
+	//UP_LEFT
+	if (up > 0 && left > 0 && matrix[up][left])
+		cont++;
+	else if (toroidale && matrix[up_toroidale][left_toroidale])
+		cont++;
+	//up_right
+	if (up > 0 && right < dim && matrix[up][right])
+		cont++;
+	else if (toroidale && matrix[up_toroidale][right_toroidale])
+		cont++;
+	return cont;
+}
+
+int serial_ex5(int numIteration, int ** matrix, int dim) {
+	double begin_time = omp_get_wtime();
+	//Qualsiasi cella viva con meno di due celle vive adiacenti muore, come per effetto d'isolamento;
+	//Qualsiasi cella viva con due o tre celle vive adiacenti sopravvive alla generazione successiva;
+	//Qualsiasi cella viva con più di tre celle vive adiacenti muore, come per effetto di sovrappopolazione;
+	//Qualsiasi cella morta con esattamente tre celle vive adiacenti diventa una cella viva, come per effetto di riproduzione.
+	for (int a = 0; a < numIteration; a++) {
+		int **temp = (int **) malloc(dim * sizeof(int*));
+		for (int t = 0; t < dim; t++)
+			temp[t] = (int *) malloc(dim * sizeof(int));
+		for (int c1 = 0; c1 < dim; c1++)
+			for (int c2 = 0; c2 < dim; c2++)
+				temp[c1][c2] = matrix[c1][c2];
+		for (int x = 0; x < dim; x++)
+			for (int j = 0; j < dim; j++) {
+				int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se tiroidale o no
+				if (!matrix[x][j] && live == 3)
+					matrix[x][j] = 1;
+				else if (matrix[x][j] && (live < 2 || live > 3))
+					matrix[x][j] = 0;
+			}
+		printf("*****TURN %d*****", a);
+		printMatrixEx5(matrix, dim);
+		free(temp);
+	}
+	double end_time = omp_get_wtime() - begin_time;
+	printf("*SERIAL GOL EXECUTION TERMINATED IN: %.8g\n", end_time);
+	return end_time;
+}
+void parallel_ex5(int numIteration, int ** matrix, int dim) {
+}
+
+void excercise5(int numIteration, int numThreads) {
+	int dim = 4;
+	printf("*********************\nBEGIN EXCERCISE 5\n");
+	printf("*BEGIN GENERATION MATRIX*\n");
+	int **matrix = (int **) malloc(dim * sizeof(int*));
+	int **serial_matrix = (int **) malloc(dim * sizeof(int*));
+	int **parallel_matrix = (int **) malloc(dim * sizeof(int*));
+	for (int i = 0; i < dim; i++) {
+		matrix[i] = (int *) malloc(dim * sizeof(int));
+		serial_matrix[i] = (int *) malloc(dim * sizeof(int));
+		parallel_matrix[i] = (int *) malloc(dim * sizeof(int));
+	}
+	generate_matrix_exercise_5(matrix, serial_matrix, parallel_matrix, dim);
+	printf("*END GENERATION MATRIX*\n");
+	printMatrixEx5(matrix, dim);
+	serial_ex5(numIteration, serial_matrix, dim);
+	parallel_ex5(numIteration, parallel_matrix, dim);
+	printf("END EXCERCISE 5\n*********************\n");
 }
 
 int main() {
 	printf(
-			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n 4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
-	int toLaunch = 3;
-//	scanf("%d", &toLaunch);
-	int max_num_threads = omp_get_max_threads();
-	int num_thread = max_num_threads;
-	int dim = 100000000;
+			"Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n");
+	printf("4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
+	printf(
+			"followed by number of thread and dimension of container in form: excercise-numThreads-dimension \n EXAMPLE: 3-6-10000\n");
+	int toLaunch, num_thread = 0, dim;
+	const int numberExcercise = 5;
+	const int max_num_threads = omp_get_max_threads();
+//	scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
+//	while(toLaunch>numberExcercise || toLaunch<1 || max_num_threads < num_thread || num_thread==0)
+//	{
+//		printf("ERROR INPUT!!!\nEXAMPLE: 3-6-10000\n");
+//		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
+//	}
+	num_thread = max_num_threads;
+	dim = 5;
+	toLaunch = 5;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
