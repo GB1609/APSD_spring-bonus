@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <time.h>
 #include <math.h>
+#include "Excercise1.h"
 
 void sumOfVector() {
 	srand(time(NULL));
@@ -36,15 +37,7 @@ void sumOfVector() {
 	printf("TEMPO PARALLELO= %.8g \n SOMMA= %d \n", time_parallel, final_sum);
 	printf("END SUM OF VECTOR \n");
 }
-void printMatrixEx1(double **matrix, int dim) {
-	printf("%d", dim);
-	for (int a = 0; a < dim; a++) {
-		for (int b = 0; b < dim; b++) {
-			printf("%.8g \t", matrix[a][b]);
-		}
-		printf("\n");
-	}
-}
+
 
 void printMatrixEx5(int **matrix, int dim) {
 	printf("DIMENSION OF MATRIX ====> %d\n", dim);
@@ -56,29 +49,14 @@ void printMatrixEx5(int **matrix, int dim) {
 	}
 }
 
-int checkMatrixEx1(double **matrix1, double **matrix2, int dim, int numThreads) {
-
-	int finalSum = 0, a, b;
-#pragma omp parallel for shared(matrix1,matrix2) private(a,b) reduction(+:finalSum)
-	for (a = 0; a < dim; a++)
-		for (b = 0; b < dim; b++)
-			if (matrix1[a][b] != matrix2[a][b])
-				finalSum++;
-
-	return finalSum;
-
-}
 
 int checkMatrixEx5(int **matrix1, int **matrix2, int dim, int numThreads) {
-
 	int finalSum = 0, a, b;
 	for (a = 0; a < dim; a++)
 		for (b = 0; b < dim; b++)
 			if (matrix1[a][b] != matrix2[a][b])
 				finalSum++;
-
 	return finalSum;
-
 }
 
 int checkVectorsEx2(int *vetor1, int *vector2, int dim, int numThreads) {
@@ -90,68 +68,6 @@ int checkVectorsEx2(int *vetor1, int *vector2, int dim, int numThreads) {
 			finalSum++;
 	return finalSum;
 
-}
-
-void excerise1(int dim, int numThreads) {
-	double **matrixA = (double **) malloc(dim * sizeof(double*));
-	double **matrixB = (double **) malloc(dim * sizeof(double*));
-	for (int i = 0; i < dim; i++) {
-		matrixA[i] = (double *) malloc(dim * sizeof(double));
-		matrixB[i] = (double *) malloc(dim * sizeof(double));
-	}
-	int a, b;
-	double time_serial, time_begin, time_serial_check;
-	printf("***********************\nBEGIN SEQUENTIAL EXERCISE 1\n");
-	time_begin = omp_get_wtime();
-	for (a = 0; a < dim; a++)
-		for (b = 0; b < dim; b++) {
-			matrixA[a][b] = 5 * pow(a, 3) + 5 * M_PI * pow(b, 6);
-			matrixB[a][b] = (10 / 3) * (matrixA[a][b]);
-		}
-//	printMatrix(matrixA, dim);
-	time_serial = omp_get_wtime() - time_begin;
-	printf(
-			"END SEQUENTIAL EXERCISE 1\nTIME EXECUTION SEQ: %8g\n***********************",
-			time_serial);
-	printf("***********************\nBEGIN PARALLEL EXERCISE 1\n");
-	time_begin = omp_get_wtime();
-	double **matrixAParallel = (double **) malloc(dim * sizeof(double));
-	double **matrixBParallel = (double **) malloc(dim * sizeof(double));
-	for (int i = 0; i < dim; i++) {
-		matrixAParallel[i] = (double *) malloc(dim * sizeof(double));
-		matrixBParallel[i] = (double *) malloc(dim * sizeof(double));
-	}
-	omp_set_num_threads(numThreads);
-
-#pragma omp parallel private(a, b)
-	{
-#pragma omp for schedule(static)
-		for (a = 0; a < dim; a++) {
-			for (b = 0; b < dim; b++) {
-				matrixAParallel[a][b] = 5 * pow(a, 3) + 5 * M_PI * pow(b, 6);
-				matrixBParallel[a][b] = (10 / 3) * (matrixA[a][b]);
-			}
-		}
-	}
-//	printMatrix(matrixA,dim);
-
-	time_serial = omp_get_wtime() - time_begin;
-	time_begin = omp_get_wtime();
-	if (checkMatrixEx1(matrixA, matrixAParallel, dim, numThreads) == 0
-			&& checkMatrixEx1(matrixB, matrixBParallel, dim, numThreads) == 0) {
-		time_serial_check = omp_get_wtime() - time_begin;
-		printf(
-				"END PARALLEL EXERCISE 1\nTIME EXECUTION PARALLEL: %8g\n***********************",
-				time_serial);
-		printf("TIME CHECKING: %8g\n***********************",
-				time_serial_check);
-	} else
-		printf("END PARALLEL EXERCISE 1 WITH ERROR\n\n***********************");
-	free(matrixA);
-	free(matrixB);
-	free(matrixBParallel);
-	free(matrixAParallel);
-	printf("END EXCERCISE 1\n*********************\n");
 }
 
 void excercise2(int dim, int numThreads) {
@@ -303,10 +219,10 @@ double excercise3_serial_monte_carlo(int dim, int numThreads) {
 	int i, nCirc = 0;
 	double r = 1.0, pi, x, y;
 	omp_set_num_threads(numThreads);
-	int seed = (int) r * 2;
+	unsigned int seed = (int) r * 2;
 	double begin_time = omp_get_wtime();
 	for (i = 0; i < dim; i++) {
-		x = (double) rand_r(&seed) / RAND_MAX;
+		x = (double) rand_r(&seed);
 		y = (double) rand_r(&seed) / RAND_MAX;
 		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
 			nCirc++;
@@ -321,7 +237,7 @@ double excercise3_serial_monte_carlo(int dim, int numThreads) {
 double excercise3_parallel_monte_carlo(int dim, int numThreads) {
 	int i, nCirc = 0;
 	double r = 1.0, pi, x, y;
-	int seed = 0;
+	unsigned int seed = 0;
 	double begin_time = omp_get_wtime();
 #pragma omp parallel for private(x,y,i) reduction (+:nCirc) if(dim > 10000000)
 	for (i = 0; i < dim; i++) {
@@ -428,7 +344,8 @@ int module(int x, int dim) {
 	return (x % dim + dim) % dim;
 }
 
-int count_live_cell_ex5(int ** matrix, int row, int col, int dim, int toroidale) {
+int count_live_cell_ex5(int ** matrix, int row, int col, int dim,
+		int toroidale) {
 	int cont = 0;
 
 	int up = row - 1, down = row + 1, left = col - 1, right = col + 1,
@@ -486,7 +403,7 @@ int** generateTemp(int dim) {
 	return temp;
 }
 
-void** update_temp_matrix_Ex5(int dim, int** matrix, int **temp) {
+void update_temp_matrix_Ex5(int dim, int** matrix, int **temp) {
 	for (int c1 = 0; c1 < dim; c1++)
 		for (int c2 = 0; c2 < dim; c2++)
 			temp[c1][c2] = matrix[c1][c2];
@@ -526,14 +443,14 @@ double parallel_ex5(int numIteration, int ** matrix, int dim, int nThreads) {
 	for (int a = 0; a < numIteration; a++) {
 		update_temp_matrix_Ex5(dim, matrix, temp);
 #pragma omp parallel for private (x,j) schedule(dynamic,3)
-			for (x = 0; x < dim; x++) {
-				for (j = 0; j < dim; j++) {
-					int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se toroidale o no
+		for (x = 0; x < dim; x++) {
+			for (j = 0; j < dim; j++) {
+				int live = count_live_cell_ex5(temp, x, j, dim, 1); //ultimo valore indica se toroidale o no
 //					printf("sono x=%d y =%d e intorno ho %d vive \n", x, j,
 //							live);
-					update_matrix_ex5(x, j, live, matrix, temp);
-				}
+				update_matrix_ex5(x, j, live, matrix, temp);
 			}
+		}
 
 //		printf("*****TURN %d*****", a);
 //		printMatrixEx5(matrix, dim);
@@ -545,7 +462,7 @@ double parallel_ex5(int numIteration, int ** matrix, int dim, int nThreads) {
 }
 
 void excercise5(int numIteration, int numThreads) {
-	int dim = 100;
+	int dim = 20;
 //	numIteration = 1;
 	printf("*********************\nBEGIN EXCERCISE 5\n");
 	printf("*BEGIN GENERATION MATRIX*\n");
@@ -559,7 +476,7 @@ void excercise5(int numIteration, int numThreads) {
 	}
 	generate_matrix_exercise_5(matrix, serial_matrix, parallel_matrix, dim);
 	printf("*END GENERATION MATRIX*\nORIGINAL MATRIX\n");
-	printMatrixEx5(matrix, dim);
+//	printMatrixEx5(matrix, dim);
 	serial_ex5(numIteration, serial_matrix, dim);
 	parallel_ex5(numIteration, parallel_matrix, dim, 2);
 	printf("DiFF============>%d\n",
@@ -586,16 +503,18 @@ int main() {
 //		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
 //	}
 	num_thread = max_num_threads;
-	dim = 100000;
-	toLaunch = 5;
+	dim = 10000;
+	toLaunch = 1;
 	switch (toLaunch) {
 	case 0:
 		printf("SUM OF VECTOR\n");
 		sumOfVector();
 		break;
-	case 1:
+	case 1: {
 		printf("***Exercise 1*** \n");
-		excerise1(dim, num_thread);
+		Excercise1 ex1(dim, num_thread);
+		ex1.execute();
+	}
 		break;
 	case 2:
 		printf("***Exercise 2*** \n");
