@@ -8,8 +8,6 @@
 #ifndef EXCERCISE1_H_
 #define EXCERCISE1_H_
 
-#include <omp.h>
-
 class Excercise1 {
 private:
 	int dim;
