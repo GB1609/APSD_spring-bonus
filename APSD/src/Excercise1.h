@@ -13,22 +13,22 @@
 class Excercise1 {
 private:
 	int dim;
-	int numThread;
+	int num_threads;
 	double **matrixA;
 	double **matrixB;
-	double **matrixAParallel = (double **) malloc(dim * sizeof(double));
-	double **matrixBParallel = (double **) malloc(dim * sizeof(double));
+	double **parallel_matrixA = (double **) malloc(dim * sizeof(double));
+	double **parallel_matrixB = (double **) malloc(dim * sizeof(double));
 public:
-	Excercise1(int d, int nt): dim(d),numThread(nt) {
+	Excercise1(int d, int nt): dim(d),num_threads(nt) {
 		matrixA = (double **) malloc(dim * sizeof(double*));
 		matrixB = (double **) malloc(dim * sizeof(double*));
-		matrixAParallel = (double **) malloc(dim * sizeof(double));
-		matrixBParallel = (double **) malloc(dim * sizeof(double));
+		parallel_matrixA = (double **) malloc(dim * sizeof(double));
+		parallel_matrixB = (double **) malloc(dim * sizeof(double));
 		for (int i = 0; i < dim; i++) {
 			matrixA[i] = (double *) malloc(dim * sizeof(double));
 			matrixB[i] = (double *) malloc(dim * sizeof(double));
-			matrixAParallel[i] = (double *) malloc(dim * sizeof(double));
-			matrixBParallel[i] = (double *) malloc(dim * sizeof(double));
+			parallel_matrixA[i] = (double *) malloc(dim * sizeof(double));
+			parallel_matrixB[i] = (double *) malloc(dim * sizeof(double));
 		}
 	}
 
@@ -50,8 +50,8 @@ public:
 		printf("SPEED_UP:%.4g\n",serial/parallel);
 		free(matrixA);
 		free(matrixB);
-		free(matrixAParallel);
-		free(matrixBParallel);
+		free(parallel_matrixA);
+		free(parallel_matrixB);
 	}
 
 	double serial_execute() {
@@ -74,15 +74,15 @@ public:
 	double parallel_execute() {
 		int a,b;
 		double end_time,begin_time;
-		omp_set_num_threads(numThread);
+		omp_set_num_threads(num_threads);
 		begin_time=omp_get_wtime();
 #pragma omp parallel private(a, b)
 		{
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
 			for (a = 0; a < dim; a++) {
 				for (b = 0; b < dim; b++) {
-					matrixAParallel[a][b] = 5 * pow(a, 3) + 5 * M_PI * pow(b, 6);
-					matrixBParallel[a][b] = (10 / 3) * (matrixA[a][b]);
+					parallel_matrixA[a][b] = 5 * pow(a, 3) + 5 * M_PI * pow(b, 6);
+					parallel_matrixB[a][b] = (10 / 3) * (matrixA[a][b]);
 				}
 			}
 		}
@@ -98,36 +98,26 @@ public:
 		double end_time,begin_time;
 		begin_time=omp_get_wtime();
 		int finalSum = 0, a, b;
-#pragma omp parallel for shared(matrixA,matrixAParallel) private(a,b) reduction(+:finalSum)
+#pragma omp parallel for shared(matrixA,parallel_matrixA) private(a,b) reduction(+:finalSum)
 			for (a = 0; a < dim; a++)
 				for (b = 0; b < dim; b++)
-					if (matrixA[a][b] != matrixAParallel[a][b])
+					if (matrixA[a][b] != parallel_matrixA[a][b])
 						finalSum++;
 		int sum=finalSum;
 		finalSum=0;
-#pragma omp parallel for shared(matrixB,matrixBParallel) private(a,b) reduction(+:finalSum)
+#pragma omp parallel for shared(matrixB,parallel_matrixB) private(a,b) reduction(+:finalSum)
 			for (a = 0; a < dim; a++)
 			for (b = 0; b < dim; b++)
-			if (matrixB[a][b] != matrixBParallel[a][b])
+			if (matrixB[a][b] != parallel_matrixB[a][b])
 			finalSum++;
 
 		finalSum+=sum;
 		if(finalSum>0)
-		printf("*ERROR");
+		printf("*ERROR\n");
 		else
-		printf("*CORRECT, SAME VALUE");
+		printf("*CORRECT, SAME VALUES\t");
 		end_time=omp_get_wtime()-begin_time;
-		printf("TIME CHECKING:%.8g\n",end_time);
-	}
-
-	void printMatrixEx1(double **matrix) {
-		printf("%d", dim);
-		for (int a = 0; a < dim; a++) {
-			for (int b = 0; b < dim; b++) {
-				printf("%.8g \t", matrix[a][b]);
-			}
-			printf("\n");
-		}
+		printf("TIME CHECKING: %.8g*\n",end_time);
 	}
 
 };
