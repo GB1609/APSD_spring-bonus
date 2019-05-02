@@ -6,132 +6,8 @@
 #include <math.h>
 #include "Excercise1.h"
 #include "Excercise2.h"
+#include "Excercise3.h"
 #include "Excercise5.h"
-
-double excercise3_serial(int dim) {
-	double x, pi, sum = 0.0;
-	double step = 1.0 / (double) dim;
-	double begin_time = omp_get_wtime();
-	for (int i = 0; i < dim; i++) {
-		x = (i + 0.5) * step;
-		sum += 4.0 / (1.0 + x * x);
-	}
-	pi = step * sum;
-	double end_time = omp_get_wtime() - begin_time;
-	printf("*SERIAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-double excercise3_critical(int dim, int numThreads) {
-	double pi = 0.0, begin_time, end_time;
-	double step = 1.0 / (double) dim;
-	omp_set_num_threads(numThreads);
-	begin_time = omp_get_wtime();
-#pragma omp parallel if(dim > 10000)
-	{
-		double x, sum;
-#pragma omp for
-		for (int i = 0; i < dim; i++) {
-			x = (i + 0.5) * step;
-			sum += 4.0 / (1.0 + x * x);
-		}
-
-#pragma omp critical
-		pi += step * sum;
-	}
-	end_time = omp_get_wtime() - begin_time;
-	printf("*CRITICAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-double excercise3_padding(int dim, int numThreads) {
-	double pi = 0.0, begin_time, end_time, x;
-	double pi_padding[numThreads][8];
-	double step = 1.0 / (double) dim;
-	omp_set_num_threads(numThreads);
-	begin_time = omp_get_wtime();
-#pragma omp parallel if(dim > 10000)
-	{
-		int id = omp_get_thread_num();
-#pragma omp for
-		for (int i = 0; i < dim; i++) {
-			x = (i + 0.5) * step;
-			pi_padding[id][0] += 4.0 / (1.0 + x * x);
-		}
-	}
-	for (int i = 0; i < numThreads; i++)
-		pi += pi_padding[i][0] * step;
-
-	end_time = omp_get_wtime() - begin_time;
-	printf("*PADDING EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-double excercise3_reduction(int dim, int numThreads) {
-	int i;
-	double x, pi, sum = 0.0;
-	double step = 1.0 / (double) dim;
-	omp_set_num_threads(numThreads);
-	double begin_time = omp_get_wtime();
-#pragma omp parallel for private(i) reduction (+:sum) if(dim > 10000)
-	for (i = 0; i < dim; i++) {
-		x = (i + 0.5) * step;
-		sum += 4.0 / (1.0 + x * x);
-	}
-	pi = step * sum;
-	double end_time = omp_get_wtime() - begin_time;
-	printf("*REDUCTION EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-double excercise3_serial_monte_carlo(int dim, int numThreads) {
-	int i, nCirc = 0;
-	double r = 1.0, pi, x, y;
-	omp_set_num_threads(numThreads);
-	unsigned int seed = (int) r * 2;
-	double begin_time = omp_get_wtime();
-	for (i = 0; i < dim; i++) {
-		x = (double) rand_r(&seed);
-		y = (double) rand_r(&seed) / RAND_MAX;
-		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
-			nCirc++;
-	}
-	pi = 4.0 * ((double) nCirc / (double) dim);
-	double end_time = omp_get_wtime() - begin_time;
-	printf(
-	      "*SERIAL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-double excercise3_parallel_monte_carlo(int dim, int numThreads) {
-	int i, nCirc = 0;
-	double r = 1.0, pi, x, y;
-	unsigned int seed = 0;
-	double begin_time = omp_get_wtime();
-#pragma omp parallel for private(x,y,i) reduction (+:nCirc) if(dim > 10000000)
-	for (i = 0; i < dim; i++) {
-		x = (double) rand_r(&seed) / RAND_MAX;
-		y = (double) rand_r(&seed) / RAND_MAX;
-		if (pow(x, 2) + pow(y, 2) <= pow(r, 2))
-			nCirc++;
-	}
-	pi = 4.0 * ((double) nCirc / (double) dim);
-	double end_time = omp_get_wtime() - begin_time;
-	printf(
-	      "*PARALLEL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	      end_time, pi);
-	return end_time;
-}
-void excercise3(int dim, int numThreads) {
-	printf("*********************\nBEGIN EXCERCISE 3\n");
-	excercise3_serial(dim);
-	excercise3_critical(dim, numThreads);
-	excercise3_padding(dim, numThreads);
-	excercise3_reduction(dim, numThreads);
-	excercise3_serial_monte_carlo(dim, numThreads);
-	excercise3_parallel_monte_carlo(dim, numThreads);
-	printf("END EXCERCISE 3\n*********************\n");
-}
 
 void excercise4Reduction(int *vector, int sizeVector, int toSearch) {
 	int parallel_find = 0, a;
@@ -209,8 +85,8 @@ int main() {
 //		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
 //	}
 	num_thread = max_num_threads - 3;
-	dim = 10;
-	toLaunch = 5;
+	dim = 100000000;
+	toLaunch = 3;
 	printf("THREADS USED: %d\n", num_thread);
 	switch (toLaunch) {
 		case 1: {
@@ -227,7 +103,8 @@ int main() {
 			break;
 		case 3: {
 			printf("***Exercise 3*** \n");
-			excercise3(dim, num_thread);
+			Excercise3 ex3(dim,num_thread);
+			ex3.execute();
 		}
 			break;
 		case 4: {
