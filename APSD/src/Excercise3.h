@@ -13,8 +13,9 @@ class Excercise3
   private:
   int dim;
   int num_threads;
+  FileWriter fw;
   public:
-  Excercise3(int d, int nt):dim(d),num_threads(nt)
+  Excercise3(int d, int nt,FileWriter fw):dim(d),num_threads(nt), fw(fw)
   {};
 
   double serial_execute()

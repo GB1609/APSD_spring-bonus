@@ -16,8 +16,9 @@ private:
 	double **matrixB;
 	double **parallel_matrixA = (double **) malloc(dim * sizeof(double));
 	double **parallel_matrixB = (double **) malloc(dim * sizeof(double));
+	FileWriter fw;
 public:
-	Excercise1(int d, int nt): dim(d),num_threads(nt) {
+	Excercise1(int d, int nt, FileWriter fw): dim(d),num_threads(nt), fw(fw) {
 		matrixA = (double **) malloc(dim * sizeof(double*));
 		matrixB = (double **) malloc(dim * sizeof(double*));
 		parallel_matrixA = (double **) malloc(dim * sizeof(double));

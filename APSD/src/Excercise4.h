@@ -15,8 +15,9 @@ class Excercise4
   int num_threads;
   int *vector;
   int toSearch;
+  FileWriter fw;
   public:
-  Excercise4(int d, int nt):dim(d),num_threads(nt)
+  Excercise4(int d, int nt,FileWriter fw):dim(d),num_threads(nt), fw(fw)
   {
     vector = (int*) malloc(dim * sizeof(int));
     for (int a = 0; a < dim; a++)
