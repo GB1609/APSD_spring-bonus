@@ -33,7 +33,7 @@ main ()
 //		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
 //	}
   num_thread = max_num_threads - 3;
-  dim = 20000;
+  dim = 1000;
   toLaunch = 5;
   printf ("THREADS USED: %d\n", num_thread);
   FileWriter fw (toLaunch);
@@ -57,7 +57,7 @@ main ()
       break;
     case 5:
       printf ("***Exercise 5*** \n");
-      Excercise5 (dim, 1, num_thread, fw).execute ();
+      Excercise5 (dim, 500, num_thread, fw).execute ();
       break;
     default:
       printf ("NUMBER NOT KNOW");

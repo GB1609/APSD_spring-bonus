@@ -26,12 +26,18 @@ class FileWriter
     to_write+=to_append;
   }
 
+  void update_string(int nt,int ser, int par,double su,string type)
+  {
+    string to_append = to_string(nt) + ";" + to_string(ser) + ";" + to_string(par) + ";" + to_string(su) + ";" + type;
+    to_write=to_write+to_append;
+  }
+
   void write()
   {
-    ofstream myfile;
-    myfile.open (name_file+".txt",ios::out |ios::app);
-    myfile << to_write;
-    myfile.close();
+    ofstream file_ex;
+    file_ex.open ("sheets/"+name_file+".txt",ios::out |ios::app);
+    file_ex << to_write;
+    file_ex.close();
   }
 };
 

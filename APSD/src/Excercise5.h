@@ -40,8 +40,11 @@ class Excercise5
     printf("*ERROR FINAL VALUES*\n");
     else
     printf("*CORRECT VALUES\t");
-    printf("SPEED_UP:%.4g*\n",serial/parallel);
+    double speed_up=serial/parallel;
+    printf("SPEED_UP:%.4g*\n",speed_up);
     free(serial_matrix);free(parallel_matrix);
+    fw.update_string(num_threads,serial,parallel,speed_up,"MONTE CARLO");
+    fw.write();
   }
   double serial_execution()
   {
@@ -169,7 +172,6 @@ class Excercise5
       int toroidale)
   {
     int cont = 0;
-
     int up = row - 1, down = row + 1, left = col - 1, right = col + 1,
     up_toroidale = module(row - 1), left_toroidale = module(
 	col - 1), down_toroidale = module(row + 1),
