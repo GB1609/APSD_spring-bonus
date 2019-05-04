@@ -1,10 +1,3 @@
-/*
- * Excercise5.h
- *
- *  Created on: 2 mag 2019
- *      Author: gb1609
- */
-
 #ifndef EXCERCISE5_H_
 #define EXCERCISE5_H_
 
@@ -14,27 +7,47 @@ class Excercise5
 {
   private:
   int dim,num_steps,num_threads;
-  int **serial_matrix,**parallel_matrix;
+  double serial;
+  int **serial_matrix,**parallel_matrix,**begin_matrix;
   FileWriter fw;
 
   public:
-  Excercise5(int d,int ns,int nt,FileWriter fw): dim(d),num_steps(ns),num_threads(nt),fw(fw)
+  Excercise5(int d,int ns,FileWriter fw): dim(d),num_steps(ns),fw(fw)
   {
     printf("*BEGIN GENERATION MATRIX*\n");
     serial_matrix = (int **) malloc(dim * sizeof(int*));
     parallel_matrix = (int **) malloc(dim * sizeof(int*));
+    begin_matrix=(int **) malloc(dim * sizeof(int*));
     for (int i = 0; i < dim; i++)
     {
       serial_matrix[i] = (int *) malloc(dim * sizeof(int));
       parallel_matrix[i] = (int *) malloc(dim * sizeof(int));
+      begin_matrix[i] = (int *) malloc(dim * sizeof(int));
     }
     generate_matrix();
     printf("*END GENERATION MATRIX*\nORIGINAL MATRIX\n");
   }
 
-  void execute()
+  void clean()
   {
-    double serial=serial_execution();
+    free(begin_matrix);free(parallel_matrix);free(serial_matrix);
+  }
+
+  void serial_execute()
+  {
+    serial=serial_execution();
+  }
+
+  void reset_parallel_matrix()
+  {
+    for (int a=0;a<dim;a++)
+    for(int b=0;b<dim;b++)
+    parallel_matrix[a][b]=begin_matrix[a][b];
+  }
+
+  void execute(int nt)
+  {
+    num_threads=nt;
     double parallel=parallel_execution();
     if(checkMatrix()>0)
     printf("*ERROR FINAL VALUES*\n");
@@ -42,8 +55,11 @@ class Excercise5
     printf("*CORRECT VALUES\t");
     double speed_up=serial/parallel;
     printf("SPEED_UP:%.4g*\n",speed_up);
-    free(serial_matrix);free(parallel_matrix);
     fw.update_string(num_threads,serial,parallel,speed_up,"MONTE CARLO");
+  }
+
+  void write()
+  {
     fw.write();
   }
   double serial_execution()
@@ -79,7 +95,7 @@ class Excercise5
     for (int a = 0; a < num_steps; a++)
     {
       update_temp_matrix(parallel_matrix, temp);
-#pragma omp parallel for private (x,j) schedule(dynamic,3)
+#pragma omp parallel for private (x,j)
       for (x = 0; x < dim; x++)
       {
 	for (j = 0; j < dim; j++)
@@ -96,7 +112,7 @@ class Excercise5
     }
     free(temp);
     double end_time = omp_get_wtime() - begin_time;
-    printf("*PARALLEL EXECUTION TERMINATED IN: %.8g\n", end_time);
+    printf("*PARALLEL EXECUTION (%d threads) TERMINATED IN: %.8g\n",num_threads, end_time);
     return end_time;
   }
 
@@ -112,8 +128,9 @@ class Excercise5
     {
       for (int b = 0; b < dim; b++)
       {
-	serial_matrix[a][b] = rand() % 2;
-	parallel_matrix[a][b] = serial_matrix[a][b];
+	begin_matrix[a][b] = rand() % 2;
+	serial_matrix[a][b] = begin_matrix[a][b];
+	parallel_matrix[a][b] = begin_matrix[a][b];
       }
       cont++;
       for (int s = 0; s < cont; s++)

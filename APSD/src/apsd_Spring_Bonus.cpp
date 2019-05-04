@@ -18,24 +18,10 @@ using namespace std;
 int
 main ()
 {
-  printf (
-      "Insert number of bonus:\n 0 (for sum of Vector)\n 1 (for 2DMatrixGeneration) \n 2 (Exercise 2)\n 3 (Calculation of PI)\n");
-  printf ("4 (for find an element in a vector)\n 5 (for Game of Life)\n ");
-  printf (
-      "followed by number of thread and dimension of container in form: excercise-numThreads-dimension \n EXAMPLE: 3-6-10000\n");
-  int toLaunch, num_thread = 0, dim;
-  const int numberExcercise = 5;
+  int toLaunch, num_thread, dim;
   const int max_num_threads = omp_get_max_threads ();
-//	scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
-//	while(toLaunch>numberExcercise || toLaunch<1 || max_num_threads < num_thread || num_thread==0)
-//	{
-//		printf("ERROR INPUT!!!\nEXAMPLE: 3-6-10000\n");
-//		scanf("%d-%d-%d", &toLaunch, &num_thread, &dim);
-//	}
-  num_thread = max_num_threads - 3;
-  dim = 1000;
+  dim = 5000;
   toLaunch = 5;
-  printf ("THREADS USED: %d\n", num_thread);
   FileWriter fw (toLaunch);
   switch (toLaunch)
   {
@@ -56,8 +42,18 @@ main ()
       Excercise4 (dim, num_thread, fw).execute ();
       break;
     case 5:
+    {
       printf ("***Exercise 5*** \n");
-      Excercise5 (dim, 500, num_thread, fw).execute ();
+      Excercise5 ex5 (dim, 1000, fw);
+      ex5.serial_execute ();
+      for (num_thread = 2; num_thread < max_num_threads + 1; num_thread++)
+      {
+	ex5.execute (num_thread);
+	ex5.reset_parallel_matrix ();
+      }
+      ex5.write();
+      ex5.clean ();
+    }
       break;
     default:
       printf ("NUMBER NOT KNOW");
