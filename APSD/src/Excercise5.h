@@ -8,24 +8,26 @@ class Excercise5
   private:
   int dim,num_steps,num_threads;
   double serial;
-  int **serial_matrix,**parallel_matrix,**begin_matrix;
+  int **serial_matrix,**parallel_matrix,**begin_matrix,**temp;
   FileWriter fw;
 
   public:
   Excercise5(int d,int ns,FileWriter fw): dim(d),num_steps(ns),fw(fw)
   {
-    printf("*BEGIN GENERATION MATRIX*\n");
+    printf("*BEGIN GENERATION ORIGINAL MATRIX*\n");
     serial_matrix = (int **) malloc(dim * sizeof(int*));
     parallel_matrix = (int **) malloc(dim * sizeof(int*));
     begin_matrix=(int **) malloc(dim * sizeof(int*));
+    temp=(int **) malloc(dim * sizeof(int*));
     for (int i = 0; i < dim; i++)
     {
       serial_matrix[i] = (int *) malloc(dim * sizeof(int));
       parallel_matrix[i] = (int *) malloc(dim * sizeof(int));
       begin_matrix[i] = (int *) malloc(dim * sizeof(int));
+      temp[i] = (int *) malloc(dim * sizeof(int));
     }
     generate_matrix();
-    printf("*END GENERATION MATRIX*\nORIGINAL MATRIX\n");
+    printf("*END GENERATION ORIGINAL MATRIX\n");
   }
 
   void clean()
@@ -55,7 +57,7 @@ class Excercise5
     printf("*CORRECT VALUES\t");
     double speed_up=serial/parallel;
     printf("SPEED_UP:%.4g*\n",speed_up);
-    fw.update_string(num_threads,serial,parallel,speed_up,"MONTE CARLO");
+    fw.update_string(num_threads,serial,parallel,speed_up,"MONTE CARLO DYNAMIC");
   }
 
   void write()
@@ -65,7 +67,7 @@ class Excercise5
   double serial_execution()
   {
     double begin_time = omp_get_wtime();
-    int** temp = generate_temp_matrix();
+//    int** temp = generate_temp_matrix();
     for (int a = 0; a < num_steps; a++)
     {
       update_temp_matrix(serial_matrix, temp);
@@ -95,7 +97,7 @@ class Excercise5
     for (int a = 0; a < num_steps; a++)
     {
       update_temp_matrix(parallel_matrix, temp);
-#pragma omp parallel for private (x,j)
+#pragma omp parallel for private (x,j) schedule(dynamic, 5)
       for (x = 0; x < dim; x++)
       {
 	for (j = 0; j < dim; j++)

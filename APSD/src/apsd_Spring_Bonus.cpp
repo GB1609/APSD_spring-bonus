@@ -44,7 +44,7 @@ main ()
     case 5:
     {
       printf ("***Exercise 5*** \n");
-      Excercise5 ex5 (dim, 1000, fw);
+      Excercise5 ex5 (dim, 100, fw);
       ex5.serial_execute ();
       for (num_thread = 2; num_thread < max_num_threads + 1; num_thread++)
       {
