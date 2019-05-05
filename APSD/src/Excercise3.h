@@ -13,12 +13,21 @@ class Excercise3
   private:
   int dim;
   int num_threads;
+  double serial;
+  double serial_montecarlo;
   FileWriter fw;
   public:
-  Excercise3(int d, int nt,FileWriter fw):dim(d),num_threads(nt), fw(fw)
-  {};
+  Excercise3(int d,FileWriter fw):dim(d), fw(fw)
+  {
+    num_threads=0;
+    serial=0.0;
+    serial_montecarlo=0.0;
+  };
 
-  double serial_execute()
+  void write()
+  { fw.write();};
+
+  void serial_execute()
   {
     double x, pi, sum = 0.0;
     double step = 1.0 / (double) dim;
@@ -30,11 +39,8 @@ class Excercise3
     }
     pi = step * sum;
     double end_time = omp_get_wtime() - begin_time;
-    printf("*SERIAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
-    return end_time;
+    serial= end_time;
   }
-
   double critical_execute()
   {
     double pi = 0.0, begin_time, end_time;
@@ -55,8 +61,6 @@ class Excercise3
       pi += step * sum;
     }
     end_time = omp_get_wtime() - begin_time;
-    printf("*CRITICAL EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
     return end_time;
   }
   double padding_execute()
@@ -78,10 +82,7 @@ class Excercise3
     }
     for (int i = 0; i < num_threads; i++)
     pi += pi_padding[i][0] * step;
-
     end_time = omp_get_wtime() - begin_time;
-    printf("*PADDING EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
     return end_time;
   }
   double parallel_reduction()
@@ -99,11 +100,9 @@ class Excercise3
     }
     pi = step * sum;
     double end_time = omp_get_wtime() - begin_time;
-    printf("*REDUCTION EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
     return end_time;
   }
-  double serial_monte_carlo()
+  void serial_monte_carlo_execute()
   {
     int i, nCirc = 0;
     double r = 1.0, pi, x, y;
@@ -118,10 +117,7 @@ class Excercise3
     }
     pi = 4.0 * ((double) nCirc / (double) dim);
     double end_time = omp_get_wtime() - begin_time;
-    printf(
-	"*SERIAL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
-    return end_time;
+    serial_montecarlo= end_time;
   }
   double parallel_monte_carlo()
   {
@@ -130,7 +126,7 @@ class Excercise3
     unsigned int seed = 0;
     double begin_time = omp_get_wtime();
     omp_set_num_threads(num_threads);
-#pragma omp parallel for private(x,y,i) reduction (+:nCirc) if(dim > 1000)
+#pragma omp parallel for private(x,y,i) reduction (+:nCirc)
     for (i = 0; i < dim; i++)
     {
       x = (double) rand_r(&seed) / RAND_MAX;
@@ -139,23 +135,29 @@ class Excercise3
       nCirc++;
     }
     pi = 4.0 * ((double) nCirc / (double) dim);
-    double end_time = omp_get_wtime() - begin_time;
-    printf(
-	"*PARALLEL MONTE CARLO EXECUTION TERMINATED IN: %.8g\tVALUE OF PI= %.16g*\n",
-	end_time, pi);
-    return end_time;
+    return omp_get_wtime() - begin_time;
   }
 
-  void execute()
+  void execute(int nt)
   {
-    double serial=serial_execute();
+    num_threads=nt;
     double critical=critical_execute();
     double padding=padding_execute();
     double reduction=parallel_reduction();
-    printf("SPEED UP CRITICAL: %.8g\nSPEED UP PADDING: %.8g\nSPEED UP REDUCTION: %.8g\n",serial/critical,serial/padding,serial/reduction);
-    double serial_mc=serial_monte_carlo();
+    double critila_sp_up = serial / critical;
+    double padding_speed_up = serial / padding;
+    double reduction_speed_up = serial / reduction;
     double parallel_mc=parallel_monte_carlo();
-    printf("SPEED UP MC: %.8g\n",serial_mc/parallel_mc);
+    double mc_speed_up = serial_montecarlo / parallel_mc;
+    printf("CRITICAL NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP MC: %.8g\n",num_threads,serial,critical,critila_sp_up);
+    printf("PADDING NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP MC: %.8g\n",num_threads,serial,padding,padding_speed_up);
+    printf("REDUCTION NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP MC: %.8g\n",num_threads,serial,reduction,reduction_speed_up);
+    printf("NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP MC: %.8g\n",num_threads,serial_montecarlo,parallel_mc,mc_speed_up);
+    fw.update_string(num_threads,serial_montecarlo,parallel_mc,mc_speed_up,"ex3 MONTECARLO");
+    fw.update_string(num_threads,serial,critical,critila_sp_up,"ex3 CIRTICAL");
+    fw.update_string(num_threads,serial,padding,padding_speed_up,"ex3 PADDING");
+    fw.update_string(num_threads,serial,reduction,reduction_speed_up,"ex3 REDUCTION");
+
   }
 };
 

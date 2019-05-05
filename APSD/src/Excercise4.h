@@ -15,17 +15,32 @@ class Excercise4
   int num_threads;
   int *vector;
   int toSearch;
+  double serial_count;
+  double serial_only;
   FileWriter fw;
   public:
-  Excercise4(int d, int nt,FileWriter fw):dim(d),num_threads(nt), fw(fw)
+  Excercise4(int d, FileWriter fw):dim(d), fw(fw)
   {
+    serial_count=0.0;
+    serial_only=0.0;
+    num_threads=0;
     vector = (int*) malloc(dim * sizeof(int));
     for (int a = 0; a < dim; a++)
-    vector[a] = rand() % 1000;
-    toSearch = rand() % 1000;
+    vector[a] = rand() % 10000;
+    toSearch = rand() % 10000;
   }
 
-  double serial_find_count_execute()
+  void clean()
+  {
+    free(vector);
+  }
+
+  void write()
+  {
+    fw.write();
+  }
+
+  void serial_find_count_execute()
   {
     double time_begin = omp_get_wtime();
     int find = 0;
@@ -33,10 +48,7 @@ class Excercise4
     if (vector[a] == toSearch)
     find++;
     double time_end = omp_get_wtime() - time_begin;
-    printf(
-	"*FIND AND COUNT SERIAL EXECUTION TIME: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)*\n",
-	time_end, find, dim);
-    return time_end;
+    serial_count=time_end;
   }
 
   double parallel_reduction_find_count_execute()
@@ -48,9 +60,6 @@ class Excercise4
     if (vector[a] == toSearch)
     parallel_find++;
     double time_end = omp_get_wtime() - time_begin;
-    printf(
-	"*FIND AND COUNT PARALLEL REDUCITON EXECUTION TIME: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)*\n",
-	time_end, parallel_find, dim);
     return time_end;
   }
 
@@ -70,63 +79,64 @@ class Excercise4
 
     }
     double time_end = omp_get_wtime() - time_begin;
-    printf(
-	"*FIND AND COUNT PARALLEL ATOMIC EXECUTION TIME: %.8g\tFOUNDED: %d times (SIZE OF VECTOR:%d)*\n",
-	time_end, parallel_find, dim);
     return time_end;
   }
 
-  bool serial_find_only()
+  void serial_find_only()
   {
     double begin_time=omp_get_wtime();
     for (int a=0;a<dim;a++)
     if(vector[a]==toSearch)
     {
-      return true;
+      serial_only=omp_get_wtime()-begin_time;
+      return;
     }
-    return false;
+    serial_only=omp_get_wtime()-begin_time;
+    return;
   }
 
-  int parallel_find_only_execute()
+  double parallel_find_only_execute()
   {
+    double begin=omp_get_wtime(),end;
     int a;
-    int parallel_find =0;
-#pragma omp parallel shared(vector,parallel_find) private(a)
+    bool find=false;
+    double parallel_find =0.0;
+    int slice=dim/num_threads;
+#pragma omp parallel shared(find,begin) private(a)
     {
-      for (a = 0; a < dim && parallel_find==0; a++)
-      if (vector[a] == toSearch)
+#pragma omp for
+      for (a = 0; a < dim; a++)
       {
+	if (!find && vector[a] == toSearch)
+	{
 #pragma omp critical
-	parallel_find= 1;
+	  { find=true;
+	    end=omp_get_wtime()-begin;
+	  }
+	  if(find)
+	  a=dim;
+	}
       }
-
     }
-    return parallel_find;
+    if(!find)
+    end=omp_get_wtime()-begin;
+    return end;
   }
-  void execute()
+  void execute(int nt)
   {
-    double serial_fc=serial_find_count_execute();
+    num_threads=nt;
     double parallel_fc_reduction=parallel_reduction_find_count_execute();
+    double red_speed_up=serial_count/parallel_fc_reduction;
     double parallel_fc_atomic=parallel_atomic_find_count_execute();
-    printf("SPEED UP REDUCTION: %.8g\nSPEED UP ATOMIC: %.8g\n",serial_fc/parallel_fc_atomic,serial_fc/parallel_fc_atomic);
-
-    double begin_time,serial_time,parallel_time;
-    begin_time=omp_get_wtime();
-    if(serial_find_only())
-    printf("*SERIAL ONLY FIND ===>>>> FOUND IN: ");
-    else
-    printf("*SERIAL ONLY FIND ===>>>> NOT FOUND IN: ");
-    serial_time=omp_get_wtime()-begin_time;
-    printf("%.8g*\n",serial_time);
-    begin_time=omp_get_wtime();
-    if(parallel_find_only_execute()>0)
-    printf("*PARALLEL ONLY FIND ===>>>> FOUND IN: ");
-    else
-    printf("*PARALLEL ONLY FIND ===>>>> NOT FOUND IN: ");
-    parallel_time=omp_get_wtime()-begin_time;
-    printf("%.8g*\n",parallel_time);
-    printf("*SPEED UP ONLY FIND %.8g*\n",serial_time/parallel_time);
-
+    double atomic_speed_up=serial_count/parallel_fc_atomic;
+    printf("REDUCTION - NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP: %.8g\n",num_threads,serial_count,parallel_fc_reduction,red_speed_up);
+    printf("ATOMIC - NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP: %.8g\n",num_threads,serial_count,parallel_fc_atomic,atomic_speed_up);
+    double pfo= parallel_find_only_execute();
+    double pfo_speed_up=serial_only/pfo;
+    printf("ONLY FIND - NT: %d,SERIAL: %.8g, PARALLEL: %.8g,SPEED UP: %.8g\n",num_threads,serial_only,pfo,pfo_speed_up);
+    fw.update_string(num_threads,serial_count,parallel_fc_atomic,atomic_speed_up,"ex4 COUNT ATOMIC");
+    fw.update_string(num_threads,serial_count,parallel_fc_reduction,red_speed_up,"ex4 COUNT REDUCTION");
+    fw.update_string(num_threads,serial_only,pfo,pfo_speed_up,"ex4 FIND ONLY");
   }
 };
 

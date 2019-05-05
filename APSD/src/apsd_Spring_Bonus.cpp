@@ -20,8 +20,8 @@ main ()
 {
   int toLaunch, num_thread, dim;
   const int max_num_threads = omp_get_max_threads ();
-  dim = 400000000;
-  toLaunch = 2;
+  dim = INT_MAX;
+  toLaunch = 4;
   FileWriter fw (toLaunch);
   switch (toLaunch)
   {
@@ -48,14 +48,26 @@ main ()
     }
       break;
     case 3:
+    {
       printf ("***Exercise 3*** \n");
-      Excercise3 (dim, num_thread, fw).execute ();
+      Excercise3 excercise3 = Excercise3 (dim, fw);
+      excercise3.serial_execute ();
+      excercise3.serial_monte_carlo_execute ();
+      for (num_thread = 2; num_thread < max_num_threads + 1; num_thread++)
+	excercise3.execute (num_thread);
+      excercise3.write ();
+    }
       break;
     case 4:
     {
       printf ("***Exercise 4*** \n");
-      Excercise4 ex4 (dim, num_thread, fw);
-      ex4.execute ();
+      Excercise4 ex4 (dim, fw);
+      ex4.serial_find_count_execute ();
+      ex4.serial_find_only ();
+      for (num_thread = 2; num_thread < max_num_threads + 1; num_thread++)
+	ex4.execute (num_thread);
+      ex4.write ();
+      ex4.clean ();
     }
       break;
     case 5:
