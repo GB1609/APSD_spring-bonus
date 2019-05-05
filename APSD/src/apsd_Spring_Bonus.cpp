@@ -20,8 +20,8 @@ main ()
 {
   int toLaunch, num_thread, dim;
   const int max_num_threads = omp_get_max_threads ();
-  dim = INT_MAX;
-  toLaunch = 4;
+  dim = 10000000;
+  toLaunch = 3;
   FileWriter fw (toLaunch);
   switch (toLaunch)
   {
